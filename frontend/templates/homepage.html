@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+
+    <script type="text/javascript">
+        var received_data_unparsed = '{{ data|tojson }}'
+    </script>
+
+    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WATERWISE</title>
+    <link rel="shortcut icon" href="static/siteIcon.png">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.4.1/dist/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.4.1/dist/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
+
+
+
+    <link rel="stylesheet" href="static/style.css"/>
+
+</head>
+<body>
+    <div class="container">
+        <div class="row">
+            <div class="col-sm" id="page_title">
+                <h1 class="titolo">WATERWISE</h1>
+            </div>
+        </div>
+
+        <div class="row" id="sottotitolo">
+            <div class="col-sm-12">
+                <h3 class="sottotitolo">WaterAnalysis, TubingEvaluation, ResourceWatchful & Inspection for SustainableEnvironment</h3>
+            </div>
+            <div class="col-sm-3"></div>
+            <div class="col-sm-6">
+                <div class="bottone" id="go_to_page" href="/mappasensori">
+                    <span>Mappa sensori</span> &nbsp; 
+                    <img id="immagine_bottone" src="static/iconaMappa.svg">
+                </div>
+            </div>
+            <div class="col-sm-3"></div>
+        </div>
+
+        <div class="row" id="data_row" style="display: none;">
+            <div class="col-sm-9">
+                <div id="map"></div>
+            </div>
+            <div class="col-sm-3">
+                <div class="row">
+                    <div class="col-sm-12">
+                        <ul class="list-group" id="header_list_group">
+                            <li class="list-group-item nav-header">
+                                <p class="secondary-heading" style="text-align: left;">
+                                    <img src='static/icon_delete.png' id='delete_filters'>
+                                    FILTRI
+                                </p>
+
+                                <li class="list-group-item">
+                                    <div class="row">
+                                        <div class="col-sm-12 col-md-3">
+                                            <label for="test_filtro">Via</label>
+                                        </div>
+                                        <div class="col-sm-12 col-md-9">
+                                            <input type="text" id="test_filtro">
+                                        </div>
+                                    </div>
+                                </li>
+        
+                                <li class="list-group-item form-group">
+                                    <div class="row">
+                                        <div class="col-sm-12 col-md-3">
+                                            <label for="test_tipo" id="tipologia_label">Tipo</label>
+                                        </div>
+                                        <div class="col-sm-12 col-md-9">
+                                            <select id="test_tipo" class="form-control">
+                                                <option value="" selected>Nessun filtro</option>
+                                                <option value="sensore">Sensore</option>
+                                                <option value="abitazione">Casa</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </li> 
+                                
+                                <p class="secondary-heading"> 
+                                    <img src='static/icon_resize.png' id="resize_icon">
+                                    ELEMENTI
+                                </p>
+        
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-12">
+                        <div class="container" id="list-col-title">
+                            <div class="row">
+                              <div class="col-sm-4">
+                                Indirizzo
+                              </div>
+                              <div class="col-sm-3">
+                                Storia
+                              </div>
+                              <div class="col-sm-2">
+                                Tipo
+                              </div>
+                              <div class="col-sm-3">
+                                Stato
+                              </div>
+                            </div>
+                        </div>
+        
+                        <ul class="list-group" id="lista_elementi">
+                        </ul>
+                    </div>
+                </div>
+                
+
+               
+            </div>
+        </div>
+
+    </div>
+</body>
+<div id="modals"></div>
+ 
+
+<script src="static/script.js"></script>
+
+</html>
