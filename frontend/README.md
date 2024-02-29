@@ -1,9 +1,8 @@
-Frontend code for website and dataviz
-
-
 # Waterwise
 
 **Introduzione**
+
+/insert-history
 
 Questa API permette di inserire una nuova lettura nello storico di uno specifico sensore.
 
