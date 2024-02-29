@@ -8,7 +8,7 @@ import requests
 from DB import DB
 from datetime import datetime
 
-appname = "MartaApp!"
+appname = "WaterwiseApp!"
 
 info = Info(title=appname, version="1.0.0")
 app = OpenAPI(appname, info=info,template_folder='/home/omarc/marta/templates', static_folder="/home/omarc/marta/static")
@@ -34,6 +34,45 @@ elementi = [
 ]
 
 
+
+@app.route('/insert-history-test', methods = ['POST'])
+
+#   !!THIS IS A TEST FUNCTION FOR TESTING THE CORRECT OPERATION OF REQUEST BY USERS!!
+
+#     insert a row in sistems_history (id_sys,last_time_checked, stato) starting from:
+#
+#    -address -> address of sensor
+#    -status  -> status of sensor (stabile or perdita rilevata)
+#
+#    sended by user
+
+def insert2():
+
+    request_data = request.get_json()
+    address = request_data['address']
+    status = request_data['status']
+
+
+    last_time_checked=str(datetime.now())
+
+    db = DB()
+    db.create_connection("/home/omarc/marta/database.db")
+    id_sys=(db.select_id_sys(address))
+
+    if id_sys == -1:
+        text="<div> L'indirizzo fornito ( "+address+" ) non è presente nel DB. Per favore inserisci un indirizzo valido! </div>"
+        return text,418
+    
+    if status != "stabile" and  status != "perdita rilevata":
+       text="<div> Lo stato inserito ( "+status+" ) non è ammissibile. Per favore inserisci uno stato valido ('stabile' o 'perdita rilevata')! </div>"
+       return text,418
+    
+
+    text="<div> address:"+address+"<br> status:"+status+"<br> last_time_checked:"+last_time_checked+"</div>"
+
+    return text,200
+
+
 @app.route('/insert-history', methods = ['POST'])
 
 #     insert a row in sistems_history (id_sys,last_time_checked, stato) starting from:
@@ -48,9 +87,6 @@ def insert():
     request_data = request.get_json()
     address = request_data['address']
     status = request_data['status']
-
-
-
 
 
     last_time_checked=str(datetime.now())
