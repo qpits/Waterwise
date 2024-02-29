@@ -8,6 +8,7 @@ import requests
 from DB import DB
 from datetime import datetime
 
+
 appname = "WaterwiseApp!"
 
 info = Info(title=appname, version="1.0.0")
@@ -34,6 +35,39 @@ elementi = [
 ]
 
 
+
+
+@app.route('/get-history', methods = ['POST'])
+
+#     get all history of sensor like a list of rows in this format -> (id_sys,last_time_checked, stato) starting from:
+#
+#    -address -> address of sensor
+#
+#    sended by user
+
+def getHistory():
+
+    request_data = request.get_json()
+    address = request_data['address']
+    
+    db = DB()
+    db.create_connection("/home/omarc/marta/database.db")
+    id_sys=(db.select_id_sys(address))
+
+    if id_sys == -1:
+        text="<div> L'indirizzo fornito ( "+address+" ) non è presente nel DB. Per favore inserisci un indirizzo valido! </div>"
+        return text,418
+    
+    history=db.get_history(address)
+
+    body=[]
+
+    for  i in range(len(history)):
+        element=str(history[i][2]+' / '+history[i][3])
+        body.append(element)
+             
+
+    return body,200
 
 @app.route('/insert-history-test', methods = ['POST'])
 
@@ -170,7 +204,7 @@ def mein():
     system_list = db.get_all_systems()
     #last_history_list = db.get_last_history()
 
-    print(system_list)
+    #print(system_list)
 
 
     data = {'sys':system_list}#, 'his': last_history_list}
