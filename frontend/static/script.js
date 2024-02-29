@@ -157,21 +157,6 @@ $( document ).ready(function() {
 
     let elementi = received_data['sys']
     
-    /*[
-        ["Duck St 134","perdita rilevata",36.115694, -97.062748,'S','null'],
-        ["6th Av 102","stabile",36.115747, -97.058589,'S','null'],
-        ["Maple Ave 51","stabile",36.120665, -97.061172,'S','null'],
-        ["Maple Ave 30","stabile",36.120623, -97.063954,'A','null'],
-        ["Maple Ave 37","stabile",36.120631, -97.062740,'A','null'],
-        ["Duck St 123","perdita rilevata",36.118438, -97.062754,'A','null'],
-        ["6th Av 95","stabile",36.115676, -97.060866,'A','null'],
-        ["Husband St 5","stabile",36.117403, -97.059956,'A','null'],
-        ["Maple Ave 58","stabile",36.120644, -97.059973,'A','null'],
-        ["Lewis St 22","perdita rilevata",36.118980, -97.057280,'A','null'],
-        ["6th Av 110","stabile",36.115759, -97.057268,'A','null'],
-        ["Maple Ave 1","stabile",36.120623, -97.064978,'T','null']
-    ]*/
-
     function appendElements(){
 
         /*add elementi to map and list*/
@@ -201,7 +186,7 @@ $( document ).ready(function() {
             iconAnchor:[25,25]
         });
 
-        //console.log(elementi.length)
+      
 
         for(let k = 0;k < elementi.length; k++){
             
@@ -512,11 +497,7 @@ $( document ).ready(function() {
         id = id.slice(2);
 
         data = getData(id);
-        //console.log("data:  "+data)
-
         result = post_call_show_history(data[1]);
-
-        //console.log(result)
 
         body=new Array();
 
@@ -526,7 +507,6 @@ $( document ).ready(function() {
         }
         
         body=body.join(' ')
-        //console.log('body: '+ body+"\nbody type: "+typeof(body))
         tipo='';
         if(data[2]=='Sensore') tipo='Sensore';
         else if (data[2]=='Abitazione') tipo='Casa';
@@ -558,41 +538,16 @@ $( document ).ready(function() {
                 'Accept':'application/json'
             },    
             async: false,
-            //dataType: "text",
             success: function(r){
                 console.log(r);
                 result=r;
             },
           });
          
-        //console.log('result from post_call_test: '+ result);  
-        return result;
+         return result;
 
-        
-        
-/*
-        json = {
-            "email": "eve.holt@reqres.in", 
-            "password": "pistol"
-          }
 
-        
-        $.ajax({
-            type: "POST",
-            url: "/test",
-            data: JSON.stringify(json),
-            headers: {
-                'Content-type':'application/json', 
-                'Accept':'application/json'
-            },    
-            success: function(r){
-                console.log(r)
-            },
-            dataType: "text"
-          });
-*/
     }
-
 
 
 
