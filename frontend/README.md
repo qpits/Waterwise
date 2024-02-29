@@ -9,7 +9,7 @@ La seguente API permette di inserire una nuova lettura nello storico di uno spec
 https://watermelon.gitmyfruit.it/insert-history
 
 **URL di prova**
-
+ 
 https://watermelon.gitmyfruit.it/insert-history-test
 
 !Questo url non inserirà NULLA nel database ma permette di provare se effettivamente la chiamata API è andata a buon fine o no!
