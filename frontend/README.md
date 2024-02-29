@@ -134,9 +134,9 @@ In caso di errori, controllare la descrizione dell'errore nella risposta per ris
 
 
 
-**2) SHOW A HISTORY**
+**2) GET A HISTORY**
 
-La seguente API permette di visualizzare lo storico di uno specifico sensore.
+La seguente API permette di ottenere lo storico di uno specifico sensore.
 
 **URL**
 
