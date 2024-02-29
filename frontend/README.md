@@ -2,9 +2,7 @@
 
 **Introduzione**
 
-/insert-history
-
-Questa API permette di inserire una nuova lettura nello storico di uno specifico sensore.
+La seguente API permette di inserire una nuova lettura nello storico di uno specifico sensore.
 
 **URL**
 
