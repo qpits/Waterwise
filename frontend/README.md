@@ -1,6 +1,6 @@
 # Waterwise
 
-**Introduzione**
+**1) INSERT A HISTORY**
 
 La seguente API permette di inserire una nuova lettura nello storico di uno specifico sensore.
 
@@ -129,3 +129,105 @@ curl -X POST \
 
 Assicurarsi di sostituire i valori dei parametri nella richiesta con indirizzi presenti nella lista.
 In caso di errori, controllare la descrizione dell'errore nella risposta per risolvere il problema.
+
+
+
+
+
+**2) SHOW A HISTORY**
+
+La seguente API permette di visualizzare lo storico di uno specifico sensore.
+
+**URL**
+
+https://watermelon.gitmyfruit.it/get-history
+
+**Metodo**
+
+POST
+
+**Richiesta**
+
+* Headers
+
+```
+Content-Type: application/json 
+```
+
+* Body 
+```
+JSON
+
+{
+  "address": <string>,
+}
+```
+
+**Parametri:**
+
+* address: indirizzo del sensore, la lista degli indirizzi è a seguire
+
+**Risposta**
+
+* Successo:
+
+lista dello storico esempio:
+
+[
+    "2025-02-16 12:31:55.682819 / stabile",
+    "2024-02-23 13:13:44.161071 / perdita rilevata",
+    "2024-02-23 13:13:43.734007 / stabile",
+    "2022-01-16 12:31:55.682819 / perdita rilevata"
+]
+
+* Errore:
+
+
+1) Erorre causato da un indirizzo errato non presente nel DB
+```
+HTML
+
+<div> 
+    L'indirizzo fornito ( 'address inserito' ) non è presente nel DB. 
+    Per favore inserisci un indirizzo valido! 
+</div>
+```
+
+* Codici di errore:
+
+    418: I'm a teapot - Parametri errati
+
+    500: Internal Server Error - Errore interno del server
+
+**Esempio**
+
+```
+curl -X POST \
+  -H "Content-Type: application/json" \
+  -d '{
+      "address":"6th Av 110",
+    }' \
+  https://watermelon.gitmyfruit.it/get-history
+```
+
+**Lista indirizzi validi**
+
+* Duck St 134
+* 6th Av 102
+* Maple Ave 51
+* Maple Ave 30
+* Maple Ave 37
+* Duck St 123
+* 6th Av 95
+* Husband St 5
+* Maple Ave 58
+* Lewis St 22
+* 6th Av 110
+* Maple Ave 1
+
+
+**Note**
+
+Assicurarsi di sostituire i valori dei parametri nella richiesta con indirizzi presenti nella lista.
+In caso di errori, controllare la descrizione dell'errore nella risposta per risolvere il problema.
+
