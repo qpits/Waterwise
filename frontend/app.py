@@ -7,6 +7,7 @@ import ssl
 import requests
 from DB import DB
 from datetime import datetime
+import json
 
 
 appname = "WaterwiseApp!"
@@ -60,14 +61,21 @@ def getHistory():
     
     history=db.get_history(address)
 
-    body=[]
-
+    list_of_tuples=[]
     for  i in range(len(history)):
-        element=str(history[i][2]+' / '+history[i][3])
-        body.append(element)
-             
 
-    return body,200
+        # Sample list of tuples of tuples
+        list_of_tuples.append((("Data", str(history[i][2])), ("Stato", str(history[i][3]))))
+                    
+
+    # Convert the list of tuples of tuples to a list of dictionaries
+    list_of_dicts = [dict(inner_tuple) for inner_tuple in list_of_tuples]
+
+    # Convert the list of dictionaries to a JSON string
+    text = json.dumps(list_of_dicts, indent=2)
+
+    return text,200
+
 
 @app.route('/insert-history-test', methods = ['POST'])
 
