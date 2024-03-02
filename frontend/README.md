@@ -171,14 +171,20 @@ JSON
 
 * Successo:
 
-lista dello storico esempio:
+lista dello storicoin formato json costituito da:
 
-[
-    "2025-02-16 12:31:55.682819 / stabile",
-    "2024-02-23 13:13:44.161071 / perdita rilevata",
-    "2024-02-23 13:13:43.734007 / stabile",
-    "2022-01-16 12:31:55.682819 / perdita rilevata"
-]
+```
+ [
+    {
+      "Data":<data>,
+      "Stato":<stato>
+    },
+    {
+      "Data":<data>,
+      "Stato":<stato>
+    }
+ ]
+```
 
 * Errore:
 
