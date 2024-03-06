@@ -1,4 +1,4 @@
-# Waterwise
+# Waterwise API
 
 **1) INSERT A HISTORY**
 
