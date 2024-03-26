@@ -78,7 +78,7 @@ static void connection_event_handler(void *args, esp_event_base_t event_base, in
     }
 }
 
-esp_err_t wifi_setup_station(void)
+esp_err_t wifi_setup_station(esp_netif_ip_info_t *ip_info)
 {
     esp_err_t err = ESP_FAIL;
     /* NOTE: default event loop will be created in main task before calling this function */
@@ -122,6 +122,7 @@ esp_err_t wifi_setup_station(void)
             portMAX_DELAY);
     if (bits & WIFI_CONNECTED_BIT) {
         ESP_LOGI(TAG, "Connected to AP");
+        ESP_ERROR_CHECK(esp_netif_get_ip_info(netif_handle, ip_info));
         err = ESP_OK;
     } else if (bits & WIFI_FAIL_BIT) {
         ESP_LOGE(TAG, "Failed to connect to SSID.");
