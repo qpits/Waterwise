@@ -4,8 +4,17 @@
 
 #include "wifi.h"
 #include "mqtt.h"
+#include "adc.h"
 
 static esp_mqtt_client_handle_t mqtt_client;
+
+void setup_app_event_loop(esp_event_loop_handle_t *loop) {
+	esp_event_loop_args_t app_events_args = {
+		.queue_size = 5,
+		.task_name = NULL
+	};
+	ESP_ERROR_CHECK(esp_event_loop_create(&app_events_args, loop));
+}
 
 void app_main(void)
 {
@@ -25,7 +34,10 @@ void app_main(void)
 	// now mqtt init, and we pass ip info since the gateway will always be the broker
 	ESP_ERROR_CHECK(mqtt_setup(&mqtt_client, &ip_info_handle));
 	
-	
+	// read from adc
+	adc_measure_result measure;
+	esp_err_t err = adc_reading(2000, &measure);
+	// if some error happened, send error if possible to bridge
 	for(;;) {
 		vTaskDelay(1000);
 	}
