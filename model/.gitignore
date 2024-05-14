@@ -1,1 +1,4 @@
 # gitignore here.
+.vscode/*
+lib/*
+model_class.cpp
