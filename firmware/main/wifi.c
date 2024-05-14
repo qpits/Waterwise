@@ -7,6 +7,7 @@
 #include "esp_smartconfig.h"
 
 #include "wifi.h"
+#include "utils.h"
 
 #define MAX_RETRY 5
 #define WIFI_FAIL_BIT BIT0
@@ -18,7 +19,7 @@ static const char *TAG = "WIFI";
 /* SmartConfig(TM) functionality implemented following Espressif tutorial: https://github.com/espressif/esp-idf/tree/v5.2.1/examples/wifi/smart_config*/
 
 static void smartconfig_start() {
-    ESP_ERROR_CHECK(esp_smartconfig_set_type(SC_TYPE_ESPTOUCH));
+    ESP_ERROR_CHECK(esp_smartconfig_set_type(SC_TYPE_ESPTOUCH_V2));
     smartconfig_start_config_t sc_cfg = SMARTCONFIG_START_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_smartconfig_start(&sc_cfg));
 }
@@ -67,7 +68,16 @@ static void connection_event_handler(void *args, esp_event_base_t event_base, in
         bzero(&wifi_config, sizeof(wifi_config_t));
         memcpy(wifi_config.sta.ssid, evt->ssid, sizeof(wifi_config.sta.ssid));
         memcpy(wifi_config.sta.password, evt->password, sizeof(wifi_config.sta.password));
-
+        // get reserved data
+        uint8_t rvd_data[25];
+        ESP_ERROR_CHECK(esp_smartconfig_get_rvd_data(rvd_data, sizeof(rvd_data)));
+        // parse data
+        device_cfg *cfg = (device_cfg *)args;
+        int parse_res = parse_device_data_str(cfg, (char *)rvd_data);
+        if (!parse_res) {
+            ESP_LOGE(TAG, "Failed to receive reserved data.");
+            assert(parse_res);
+        }
         ESP_LOGI(TAG, "SSID:%s", evt->ssid);
         // config received, now try to connect with the specified AP
         ESP_ERROR_CHECK( esp_wifi_disconnect() );
@@ -78,7 +88,7 @@ static void connection_event_handler(void *args, esp_event_base_t event_base, in
     }
 }
 
-esp_err_t wifi_setup_station(esp_netif_ip_info_t *ip_info)
+esp_err_t wifi_setup_station(device_cfg *dev_cfg)
 {
     esp_err_t err = ESP_FAIL;
     /* NOTE: default event loop will be created in main task before calling this function */
@@ -98,6 +108,7 @@ esp_err_t wifi_setup_station(esp_netif_ip_info_t *ip_info)
 
     esp_event_handler_instance_t instance_any_id;
     esp_event_handler_instance_t instance_got_ip;
+    esp_event_handler_instance_t instance_smart_config;
     ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT,
                                                         ESP_EVENT_ANY_ID,
                                                         connection_event_handler,
@@ -108,7 +119,7 @@ esp_err_t wifi_setup_station(esp_netif_ip_info_t *ip_info)
                                                         connection_event_handler,
                                                         NULL,
                                                         &instance_got_ip));
-    ESP_ERROR_CHECK( esp_event_handler_register(SC_EVENT, ESP_EVENT_ANY_ID, connection_event_handler, NULL) );
+    ESP_ERROR_CHECK( esp_event_handler_instance_register(SC_EVENT, ESP_EVENT_ANY_ID, connection_event_handler, dev_cfg, &instance_smart_config) );
     // CONFIG WILL BE DONE WITH SMARTCONFIG
     // all configuration will be stored to flash and persist between boots
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
@@ -122,7 +133,7 @@ esp_err_t wifi_setup_station(esp_netif_ip_info_t *ip_info)
             portMAX_DELAY);
     if (bits & WIFI_CONNECTED_BIT) {
         ESP_LOGI(TAG, "Connected to AP");
-        ESP_ERROR_CHECK(esp_netif_get_ip_info(netif_handle, ip_info));
+        ESP_ERROR_CHECK(esp_netif_get_ip_info(netif_handle, &dev_cfg->bridge_ip));
         err = ESP_OK;
     } else if (bits & WIFI_FAIL_BIT) {
         ESP_LOGE(TAG, "Failed to connect to SSID.");
@@ -130,8 +141,9 @@ esp_err_t wifi_setup_station(esp_netif_ip_info_t *ip_info)
         ESP_LOGE(TAG, "UNEXPECTED EVENT");
     }
     /* Unregister event handler. In case of disconnection after this point there will not be a reconnection retry until the app is restarted */
-    ESP_ERROR_CHECK(esp_event_handler_instance_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID, connection_event_handler));
-    ESP_ERROR_CHECK(esp_event_handler_instance_unregister(IP_EVENT, IP_EVENT_STA_GOT_IP, connection_event_handler));
+    ESP_ERROR_CHECK(esp_event_handler_instance_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID, instance_any_id));
+    ESP_ERROR_CHECK(esp_event_handler_instance_unregister(IP_EVENT, IP_EVENT_STA_GOT_IP, instance_got_ip));
+    ESP_ERROR_CHECK(esp_event_handler_instance_unregister(SC_EVENT, ESP_EVENT_ANY_ID, instance_smart_config));
     return err;
 }
 

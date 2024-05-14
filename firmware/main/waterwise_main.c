@@ -10,6 +10,7 @@
 #include "mqtt.h"
 #include "adc.h"
 #include "event_handlers.h"
+#include "utils.h"
 
 static const char *TAG = "MAIN";
 
@@ -28,30 +29,7 @@ void report_measure_error(esp_err_t err) {
 	esp_mqtt_client_enqueue(mqtt_client, "/test/error", "Error occurred during measure", 0, 1, 0, false);
 }
 
-static void leak_detect_task(adc_measure_result *measure) {
-	float mean = 0.0f;
-	float variance = 0.0f;
-	for (size_t i = 0; i < measure->samples; i++) {
-		mean += measure->measure_buff[i];
-	}
-	mean /= (float)measure->samples;
-
-	for (size_t i = 0; i < measure->samples; i++) {
-		variance += powf(measure->measure_buff[i] - mean, 2.0f);
-	}
-	variance /= ((float) measure->samples - 1);
-
-	if (variance > SOME_MAGIC_NUMBER)
-		// set bits and maybe set result.
-
-}
-
 static void start_leakage_detection(adc_measure_result *measure) {
-	// start task for leakage detection
-	// this task will probably send an event or more simply set an event bit to signal when it finished
-	// then another function will collect the results.
-
-
 }
 
 static int device_is_registered() {
@@ -66,7 +44,36 @@ static int device_is_registered() {
 	else if (err != ESP_OK) {
 		ESP_ERROR_CHECK(err);
 	}
+	nvs_close(nvs_h);
 	return (int)registerd;
+}
+
+static void device_get_config(device_cfg *cfg) {
+	nvs_handle_t nvs_h;
+	ESP_ERROR_CHECK(nvs_open("cfg", NVS_READONLY, &nvs_h));
+	size_t id_l = sizeof(cfg->id);
+	size_t lon_l = sizeof(cfg->longitude);
+	size_t lat_l = sizeof(cfg->latitude);
+	ESP_ERROR_CHECK(nvs_get_str(nvs_h, "id", cfg->id, &id_l));
+	ESP_ERROR_CHECK(nvs_get_str(nvs_h, "lon", cfg->longitude, &lon_l));
+	ESP_ERROR_CHECK(nvs_get_str(nvs_h, "lat", cfg->latitude, &lat_l));
+	nvs_close(nvs_h);
+}
+
+static void device_set_config(const device_cfg *cfg) {
+	nvs_handle_t nvs_h;
+	ESP_ERROR_CHECK(nvs_open("cfg", NVS_READWRITE, &nvs_h));
+	ESP_ERROR_CHECK(nvs_set_str(nvs_h, "id", cfg->id));
+	ESP_ERROR_CHECK(nvs_set_str(nvs_h, "lon", cfg->longitude));
+	ESP_ERROR_CHECK(nvs_set_str(nvs_h, "lat", cfg->latitude));
+	nvs_close(nvs_h);
+}
+
+static void device_set_registered() {
+	nvs_handle_t nvs_h;
+	ESP_ERROR_CHECK(nvs_open("info", NVS_READWRITE, &nvs_h));
+	ESP_ERROR_CHECK(nvs_set_u8(nvs_h, "registered", 1));
+	nvs_close(nvs_h);
 }
 
 void app_main(void)
@@ -89,10 +96,17 @@ void app_main(void)
 	ESP_ERROR_CHECK(esp_event_loop_create_default());
 	/* setup wifi */
 	// in case we fail, abort and restart application.
-	esp_netif_ip_info_t ip_info_handle;
-	ESP_ERROR_CHECK(wifi_setup_station(&ip_info_handle));
+	device_cfg d_cfg;
+	ESP_ERROR_CHECK(wifi_setup_station(&d_cfg));
+	if (device_is_registered()) {
+		device_get_config(&d_cfg);
+	}
+	else {
+		device_set_config(&d_cfg);
+		device_set_registered();
+	}
 	// now mqtt init, and we pass ip info since the gateway will always be the broker
-	ESP_ERROR_CHECK(mqtt_setup(&ip_info_handle));
+	ESP_ERROR_CHECK(mqtt_setup(&d_cfg.bridge_ip));
 	struct device_discovery_args arg = {
 		.failed_register_count = 5,
 		.event_grp = task_events
@@ -117,7 +131,7 @@ void app_main(void)
 	// read from adc
 	adc_measure_result measure;
 	esp_err_t err = adc_reading(2000, &measure);
-	// if some error happened, send error if possible to bridge
+	// if some error happened, send to bridge (if possible)
 	err = ESP_FAIL;
 	if (err != ESP_OK) {
 		report_measure_error(err);
