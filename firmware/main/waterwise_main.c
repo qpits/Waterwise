@@ -3,6 +3,7 @@
 #include "nvs_flash.h"
 #include "esp_check.h"
 #include "freertos/event_groups.h"
+#include "esp_sleep.h"
 
 #include <math.h>
 
@@ -11,6 +12,7 @@
 #include "adc.h"
 #include "event_handlers.h"
 #include "utils.h"
+#include "inference.h"
 
 static const char *TAG = "MAIN";
 
@@ -23,13 +25,6 @@ void setup_app_event_loop(esp_event_loop_handle_t *loop) {
 		.task_name = NULL
 	};
 	ESP_ERROR_CHECK(esp_event_loop_create(&app_events_args, loop));
-}
-
-void report_measure_error(esp_err_t err) {
-	esp_mqtt_client_enqueue(mqtt_client, "/test/error", "Error occurred during measure", 0, 1, 0, false);
-}
-
-static void start_leakage_detection(adc_measure_result *measure) {
 }
 
 static int device_is_registered() {
@@ -78,6 +73,8 @@ static void device_set_registered() {
 
 void app_main(void)
 {
+	// TODO: set timer wakeup interval in configuration
+	esp_sleep_enable_timer_wakeup(10000000);
 	StaticEventGroup_t event_group_buff;
 	task_events = xEventGroupCreateStatic(&event_group_buff);
 	if (task_events == NULL) {
@@ -99,21 +96,24 @@ void app_main(void)
 	device_cfg d_cfg;
 	ESP_ERROR_CHECK(wifi_setup_station(&d_cfg));
 	if (device_is_registered()) {
+		ESP_LOGI(TAG, "Device is already registered: read from flash...");
 		device_get_config(&d_cfg);
 	}
 	else {
+		ESP_LOGI(TAG, "Device has been configured. Saving config to flash...");
 		device_set_config(&d_cfg);
 		device_set_registered();
 	}
 	// now mqtt init, and we pass ip info since the gateway will always be the broker
-	ESP_ERROR_CHECK(mqtt_setup(&d_cfg.bridge_ip));
+	ESP_ERROR_CHECK(mqtt_setup(&d_cfg));
 	struct device_discovery_args arg = {
-		.failed_register_count = 5,
+		.device_config = &d_cfg,
 		.event_grp = task_events
 	};
 	register_mqtt_event(mqtt_event_handler_discovery, &arg);
 	start_mqtt_client();
 	// wait for bits to be set
+	ESP_LOGI(TAG, "Waiting for registration...");
 	EventBits_t bits = xEventGroupWaitBits(task_events,
 			BIT_REGISTER_OK | BIT_REGISTER_FAIL, 
 			pdTRUE, 
@@ -130,20 +130,27 @@ void app_main(void)
 	}
 	// read from adc
 	adc_measure_result measure;
-	esp_err_t err = adc_reading(2000, &measure);
-	// if some error happened, send to bridge (if possible)
-	err = ESP_FAIL;
+	esp_err_t err = adc_reading(1000, &measure);
 	if (err != ESP_OK) {
-		report_measure_error(err);
+		ESP_LOGE(TAG, "Error during measure.");
 		goto clean;
 	}
-	for(;;) {
-		vTaskDelay(1000);
-	}
+	// store inference result
+	uint16_t *subsampled = subsample_measure(&measure);
+	float inference_res[2];
+	ESP_ERROR_CHECK(start_inference((int16_t *)subsampled, inference_res));
+	ESP_LOGI(TAG, "Inference result: %f, %f", inference_res[0], inference_res[1]);
+	char *result_msg = NULL;
+	build_inference_res_str(&result_msg, inference_res);
+	send_message(result_msg, d_cfg.id);
+	free(result_msg);
+	free(subsampled);
+	free(measure.measure_buff);
 	clean:
 	// stop mqtt connection
 	stop_mqtt_client();
 	/* disconnect and turn off wifi. control flow will not arrive here if wifi is not initialized */
 	wifi_disconnect_station();
 	// go to sleep
+	esp_deep_sleep_start();
 }

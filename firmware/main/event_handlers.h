@@ -4,12 +4,14 @@
 #include "esp_event_base.h"
 #include <stdint.h>
 #include "freertos/event_groups.h"
+#include "utils.h"
+#include "esp_bit_defs.h"
 
-#define BIT_REGISTER_OK 0
-#define BIT_REGISTER_FAIL 1
+#define BIT_REGISTER_OK BIT0
+#define BIT_REGISTER_FAIL BIT1
 
 struct device_discovery_args {
-	int failed_register_count;
+	device_cfg *device_config;
 	EventGroupHandle_t event_grp;
 };
 

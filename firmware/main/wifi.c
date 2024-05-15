@@ -69,8 +69,9 @@ static void connection_event_handler(void *args, esp_event_base_t event_base, in
         memcpy(wifi_config.sta.ssid, evt->ssid, sizeof(wifi_config.sta.ssid));
         memcpy(wifi_config.sta.password, evt->password, sizeof(wifi_config.sta.password));
         // get reserved data
-        uint8_t rvd_data[25];
+        uint8_t rvd_data[25] = {0};
         ESP_ERROR_CHECK(esp_smartconfig_get_rvd_data(rvd_data, sizeof(rvd_data)));
+        ESP_LOGI(TAG, "RVD:%s", rvd_data);
         // parse data
         device_cfg *cfg = (device_cfg *)args;
         int parse_res = parse_device_data_str(cfg, (char *)rvd_data);

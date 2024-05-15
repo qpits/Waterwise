@@ -2,18 +2,20 @@
 #include "mqtt_client.h"
 #include "esp_log.h"
 #include "cJSON.h"
+#include "utils.h"
 
 #include "event_handlers.h"
 
-void build_discovery_json(char *buff) {
+void build_discovery_json(char **buff, device_cfg *cfg) {
     cJSON *root = NULL;
     cJSON *location = NULL;
     root = cJSON_CreateObject();
-    cJSON_AddItemToObject(root, "id", cJSON_CreateString("ABCD"));
+    cJSON_AddItemToObject(root, "id", cJSON_CreateString(cfg->id));
     cJSON_AddItemToObject(root, "location", location = cJSON_CreateObject());
-    cJSON_AddStringToObject(location, "coord", "test");
-    buff = calloc(256, sizeof(char));
-    cJSON_PrintPreallocated(root, buff, 256, false);
+    cJSON_AddStringToObject(location, "longitude", cfg->longitude);
+    cJSON_AddStringToObject(location, "latitude", cfg->latitude);
+    *buff = calloc(256, sizeof(char));
+    cJSON_PrintPreallocated(root, *buff, 256, false);
     cJSON_Delete(root);
 }
 
@@ -48,8 +50,9 @@ void mqtt_event_handler_discovery(void *handler_args, esp_event_base_t base, int
             ESP_LOGI(TAG, "Starting discovery procedure...");
             //esp_mqtt_client_publish
             // publish first message
-            char *msg_str;
-            build_discovery_json(msg_str);
+            char *msg_str = (char *)1;
+            build_discovery_json(&msg_str, args->device_config);
+            ESP_LOGI(TAG, "Sending discovery message: %s", msg_str);
             esp_mqtt_client_publish(event->client, "/discovery", msg_str, 0, 1, 0);
             free(msg_str);
         }
