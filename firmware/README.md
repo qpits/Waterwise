@@ -36,6 +36,11 @@ We can check if the session was restored when receiving the CONNECTED event by c
 
 ESP MQTT has an automatic reconnection mechanism. Maybe check for number of retries.
 
+## Retained message
+In the case of devices publishing measure messages or the bridge wanting to send a command to a device, a problem may arise: what if the deivce/bridge is not connected in that moment? For example, when the device reconnects after the bridge has already sent a command, it will not receive that latest sent command when it reconnects (even if it is a QoS > 0 message!). To be sure that a message is received by subscribers as the last published message (even if it was sent while they were not connected), the **Retain flag** must be set: this flags tells the broker to store the message and transmit it to everyone that subscribes to that topic. 
+
+> Only the _last_ message is saved: any message with the retain flag set overwrites the previously saved message!
+
 # ADC
 Using only one adc channel to read the microphone data.
 basic configuration:

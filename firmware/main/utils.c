@@ -58,3 +58,16 @@ void build_inference_res_str(char **buff, float *res) {
     cJSON_PrintPreallocated(root, *buff, 128, false);
     cJSON_Delete(root);
 }
+
+command *parse_message_str(char *msg_str) {
+    cJSON *msg = cJSON_Parse(msg_str);
+    if (!msg)
+        return NULL;
+    cJSON *id = cJSON_GetObjectItem(msg, "id");
+    if(!cJSON_IsNumber(id))
+        return NULL;
+    command *cmd = malloc(sizeof(command));
+    cmd->id = (enum command_id)id->valueint;
+    cJSON_Delete(msg);
+    return cmd;
+}

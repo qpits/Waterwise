@@ -67,7 +67,7 @@ void mqtt_event_handler_discovery(void *handler_args, esp_event_base_t base, int
     case MQTT_EVENT_DISCONNECTED:
         ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
         // count disconnection/failures
-        // after too many failures, unregister and set fail bit
+        xEventGroupSetBits(args->event_grp, BIT_REGISTER_FAIL);
         break;
     case MQTT_EVENT_PUBLISHED:
         ESP_LOGI(TAG, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
@@ -89,5 +89,25 @@ void mqtt_event_handler_discovery(void *handler_args, esp_event_base_t base, int
     default:
         ESP_LOGI(TAG, "Other event id:%d", event->event_id);
         break;
+    }
+}
+
+void mqtt_event_handler_rcvmsg(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data) {
+    esp_mqtt_event_handle_t event = event_data;
+    rcv_args *args = (rcv_args *)handler_args;
+    switch ((esp_mqtt_event_id_t)event_id) {
+        case MQTT_EVENT_DATA:
+            command *c = parse_message_str(event->data);
+            if (!c) {
+                ESP_LOGE(TAG, "Unable to parse received command.");
+            }
+            else {
+                args->executor(c);
+            }
+            xEventGroupSetBits(args->event_grp, BIT_MSG_RECV);
+            break;
+        default:
+            ESP_LOGI(TAG, "Other event id: %d", event->event_id);
+            break;
     }
 }

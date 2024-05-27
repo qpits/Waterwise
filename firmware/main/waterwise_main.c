@@ -16,18 +16,24 @@
 
 static const char *TAG = "MAIN";
 
-static esp_mqtt_client_handle_t mqtt_client;
 static EventGroupHandle_t task_events;
 
-void setup_app_event_loop(esp_event_loop_handle_t *loop) {
-	esp_event_loop_args_t app_events_args = {
-		.queue_size = 5,
-		.task_name = NULL
-	};
-	ESP_ERROR_CHECK(esp_event_loop_create(&app_events_args, loop));
+void command_executor(command *cmd) {
+	switch ((command_id)cmd->id) {
+		case SIGNAL_LEAK:
+			ESP_LOGI(TAG, "Signaling the leak...");
+			// do something
+			break;
+		case SIGNAL_OK:
+			ESP_LOGI(TAG, "Signaling that everything is ok...");
+			// do something
+			break;
+		default:
+			break;
+	}
 }
 
-static int device_is_registered() {
+static int device_has_config() {
 	nvs_handle_t nvs_h;
 	ESP_ERROR_CHECK(nvs_open("info", NVS_READWRITE, &nvs_h));
 	// check "registered" flag to know if this device is registered to the bridge
@@ -64,7 +70,7 @@ static void device_set_config(const device_cfg *cfg) {
 	nvs_close(nvs_h);
 }
 
-static void device_set_registered() {
+static void device_set_config_flag() {
 	nvs_handle_t nvs_h;
 	ESP_ERROR_CHECK(nvs_open("info", NVS_READWRITE, &nvs_h));
 	ESP_ERROR_CHECK(nvs_set_u8(nvs_h, "registered", 1));
@@ -74,7 +80,7 @@ static void device_set_registered() {
 void app_main(void)
 {
 	// TODO: set timer wakeup interval in configuration
-	esp_sleep_enable_timer_wakeup(10000000);
+	esp_sleep_enable_timer_wakeup(20000000);
 	StaticEventGroup_t event_group_buff;
 	task_events = xEventGroupCreateStatic(&event_group_buff);
 	if (task_events == NULL) {
@@ -95,27 +101,32 @@ void app_main(void)
 	// in case we fail, abort and restart application.
 	device_cfg d_cfg;
 	ESP_ERROR_CHECK(wifi_setup_station(&d_cfg));
-	if (device_is_registered()) {
+	if (device_has_config()) {
 		ESP_LOGI(TAG, "Device is already registered: read from flash...");
 		device_get_config(&d_cfg);
 	}
 	else {
 		ESP_LOGI(TAG, "Device has been configured. Saving config to flash...");
 		device_set_config(&d_cfg);
-		device_set_registered();
+		device_set_config_flag();
 	}
 	// now mqtt init, and we pass ip info since the gateway will always be the broker
 	ESP_ERROR_CHECK(mqtt_setup(&d_cfg));
-	struct device_discovery_args arg = {
+	device_discovery_args arg = {
 		.device_config = &d_cfg,
 		.event_grp = task_events
 	};
-	register_mqtt_event(mqtt_event_handler_discovery, &arg);
+	rcv_args r_arg = {
+		.executor = command_executor,
+		.event_grp = task_events
+	};
+	register_mqtt_event_handlers(mqtt_event_handler_discovery, &arg,
+						mqtt_event_handler_rcvmsg, &r_arg);
 	start_mqtt_client();
 	// wait for bits to be set
 	ESP_LOGI(TAG, "Waiting for registration...");
 	EventBits_t bits = xEventGroupWaitBits(task_events,
-			BIT_REGISTER_OK | BIT_REGISTER_FAIL, 
+			BIT_REGISTER_OK | BIT_REGISTER_FAIL,
 			pdTRUE, 
 			pdFALSE, 
 			portMAX_DELAY);
@@ -128,6 +139,8 @@ void app_main(void)
 		ESP_LOGE(TAG, "Unexpected event during registration procedure.");
 		abort();
 	}
+	// prepare to receive messages from bridge
+	msg_topic_sub(d_cfg.id);
 	// read from adc
 	adc_measure_result measure;
 	esp_err_t err = adc_reading(1000, &measure);
@@ -146,6 +159,13 @@ void app_main(void)
 	free(result_msg);
 	free(subsampled);
 	free(measure.measure_buff);
+	EventBits_t recv = xEventGroupWaitBits(task_events, BIT_MSG_RECV, pdTRUE, pdFALSE, 5000 /portTICK_PERIOD_MS);
+	if (recv & BIT_MSG_RECV) {
+		ESP_LOGI(TAG, "Received message from bridge.");
+	}
+	else {
+		ESP_LOGI(TAG, "Did not receive any message from the bridge during my wait.");
+	}
 	clean:
 	// stop mqtt connection
 	stop_mqtt_client();
