@@ -1,3 +1,4 @@
+
 from flask import Flask
 from flask import request, jsonify
 from flask_openapi3 import OpenAPI, Info
@@ -8,6 +9,7 @@ import requests
 from DB import DB
 from datetime import datetime
 import json
+from markupsafe import escape
 
 
 appname = "WaterwiseApp!"
@@ -28,14 +30,15 @@ elementi = [
     ["6th Av 102","stabile",36.115747, -97.058589,'S','null'],
     ["Maple Ave 51","stabile",36.120665, -97.061172,'S','null'],
     ["Maple Ave 30","stabile",36.120623, -97.063954,'A','null'],
-    ["Maple Ave 37","stabile",36.120631, -97.062740,'A','null'],
+    ["001","stabile",36.120631, -97.062740,'A','null'],
     ["Duck St 123","perdita rilevata",36.118438, -97.062754,'A','null'],
-    ["6th Av 95","stabile",36.115676, -97.060866,'A','null'],
+    ["003","stabile",36.115676, -97.060866,'A','null'],
     ["Husband St 5","stabile",36.117403, -97.059956,'A','null'],
     ["Maple Ave 58","stabile",36.120644, -97.059973,'A','null'],
-    ["Lewis St 22","perdita rilevata",36.118980, -97.057280,'A','null'],
+    ["002","stabile",36.118980, -97.057280,'A','null'],
     ["6th Av 110","stabile",36.115759, -97.057268,'A','null'],
     ["Maple Ave 1","stabile",36.120623, -97.064978,'T','null']
+    
 ]
 
 
@@ -59,7 +62,7 @@ def getHistory():
     id_sys=(db.select_id_sys(address))
 
     if id_sys == -1:
-        text="<div> L'indirizzo fornito ( "+address+" ) non è presente nel DB. Per favore inserisci un indirizzo valido! </div>"
+        text="<div> L'indirizzo fornito ( "+escape(address)+" ) non è presente nel DB. Per favore inserisci un indirizzo valido! </div>"
         return text,418
     
     history=db.get_history(address)
@@ -105,15 +108,15 @@ def insert2():
     id_sys=(db.select_id_sys(address))
 
     if id_sys == -1:
-        text="<div> L'indirizzo fornito ( "+address+" ) non è presente nel DB. Per favore inserisci un indirizzo valido! </div>"
+        text="<div> L'indirizzo fornito ( "+escape(address)+" ) non è presente nel DB. Per favore inserisci un indirizzo valido! </div>"
         return text,418
     
     if status != "stabile" and  status != "perdita rilevata":
-       text="<div> Lo stato inserito ( "+status+" ) non è ammissibile. Per favore inserisci uno stato valido ('stabile' o 'perdita rilevata')! </div>"
+       text="<div> Lo stato inserito ( "+escape(status)+" ) non è ammissibile. Per favore inserisci uno stato valido ('stabile' o 'perdita rilevata')! </div>"
        return text,418
     
 
-    text="<div> address:"+address+"<br> status:"+status+"<br> last_time_checked:"+last_time_checked+"</div>"
+    text="<div> address:"+escape(address)+"<br> status:"+escape(status)+"<br> last_time_checked:"+last_time_checked+"</div>"
 
     return text,200
 
@@ -141,17 +144,17 @@ def insert():
     id_sys=(db.select_id_sys(address))
 
     if id_sys == -1:
-        text="<div> L'indirizzo fornito ( "+address+" ) non è presente nel DB. Per favore inserisci un indirizzo valido! </div>"
+        text="<div> L'indirizzo fornito ( "+escape(address)+" ) non è presente nel DB. Per favore inserisci un indirizzo valido! </div>"
         return text,418
     
     if status != "stabile" and  status != "perdita rilevata":
-       text="<div> Lo stato inserito ( "+status+" ) non è ammissibile. Per favore inserisci uno stato valido ('stabile' o 'perdita rilevata')! </div>"
+       text="<div> Lo stato inserito ( "+escape(status)+" ) non è ammissibile. Per favore inserisci uno stato valido ('stabile' o 'perdita rilevata')! </div>"
        return text,418
     
 
     db.insert_registration(id_sys, last_time_checked, status)
 
-    text="<div> address:"+address+"<br> status:"+status+"<br> last_time_checked:"+last_time_checked+"</div>"
+    text="<div> address:"+escape(address)+"<br> status:"+escape(status)+"<br> last_time_checked:"+last_time_checked+"</div>"
 
     return text,200
 
