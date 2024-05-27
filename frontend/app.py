@@ -11,9 +11,12 @@ import json
 
 
 appname = "WaterwiseApp!"
+db_path = "./database.db"
+static_path = "./static"
+templates_path = "./templates"
 
 info = Info(title=appname, version="1.0.0")
-app = OpenAPI(appname, info=info,template_folder='/home/omarc/marta/templates', static_folder="/home/omarc/marta/static")
+app = OpenAPI(appname, info=info,template_folder=templates_path, static_folder=static_path)
 
 myconfig = Config
 app.config.from_object(myconfig)
@@ -52,7 +55,7 @@ def getHistory():
     address = request_data['address']
     
     db = DB()
-    db.create_connection("/home/omarc/marta/database.db")
+    db.create_connection(db_path)
     id_sys=(db.select_id_sys(address))
 
     if id_sys == -1:
@@ -98,7 +101,7 @@ def insert2():
     last_time_checked=str(datetime.now())
 
     db = DB()
-    db.create_connection("/home/omarc/marta/database.db")
+    db.create_connection(db_path)
     id_sys=(db.select_id_sys(address))
 
     if id_sys == -1:
@@ -134,7 +137,7 @@ def insert():
     last_time_checked=str(datetime.now())
 
     db = DB()
-    db.create_connection("/home/omarc/marta/database.db")
+    db.create_connection(db_path)
     id_sys=(db.select_id_sys(address))
 
     if id_sys == -1:
@@ -162,7 +165,7 @@ def show():
     request_data = request.get_json()
     address = request_data['address']
     db = DB()
-    db.create_connection("/home/omarc/marta/database.db")
+    db.create_connection(db_path)
     history=db.get_history(address)
 
     return history
@@ -170,7 +173,7 @@ def show():
 @app.route('/')
 def mein():
     db = DB()
-    db.create_connection("/home/omarc/marta/database.db")
+    db.create_connection(db_path)
    
     #delete tables
 
