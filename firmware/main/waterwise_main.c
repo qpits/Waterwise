@@ -19,18 +19,22 @@ static const char *TAG = "MAIN";
 static EventGroupHandle_t task_events;
 
 void command_executor(command *cmd) {
+	uint8_t blink_state = 0;
 	switch ((command_id)cmd->id) {
 		case SIGNAL_LEAK:
 			ESP_LOGI(TAG, "Signaling the leak...");
+			blink_state = 1;
 			// do something
 			break;
 		case SIGNAL_OK:
 			ESP_LOGI(TAG, "Signaling that everything is ok...");
 			// do something
+			blink_state = 0;
 			break;
 		default:
 			break;
 	}
+	blink_led(blink_state);
 }
 
 static int device_has_config() {
@@ -80,6 +84,7 @@ static void device_set_config_flag() {
 void app_main(void)
 {
 	// TODO: set timer wakeup interval in configuration
+	configure_led();
 	esp_sleep_enable_timer_wakeup(20000000);
 	StaticEventGroup_t event_group_buff;
 	task_events = xEventGroupCreateStatic(&event_group_buff);
@@ -100,7 +105,8 @@ void app_main(void)
 	/* setup wifi */
 	// in case we fail, abort and restart application.
 	device_cfg d_cfg;
-	ESP_ERROR_CHECK(wifi_setup_station(&d_cfg));
+	if (wifi_setup_station(&d_cfg) != ESP_OK)
+		goto clean_wifi;
 	if (device_has_config()) {
 		ESP_LOGI(TAG, "Device is already registered: read from flash...");
 		device_get_config(&d_cfg);
@@ -169,6 +175,7 @@ void app_main(void)
 	clean:
 	// stop mqtt connection
 	stop_mqtt_client();
+	clean_wifi:
 	/* disconnect and turn off wifi. control flow will not arrive here if wifi is not initialized */
 	wifi_disconnect_station();
 	// go to sleep

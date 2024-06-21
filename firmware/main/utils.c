@@ -3,6 +3,8 @@
 #include <string.h>
 #include <math.h>
 #include "cJSON.h"
+#include "driver/gpio.h"
+#include "esp_log.h"
 
 int parse_device_data_str(device_cfg *cfg, const char *data) {
     char id[4];
@@ -70,4 +72,17 @@ command *parse_message_str(char *msg_str) {
     cmd->id = (enum command_id)id->valueint;
     cJSON_Delete(msg);
     return cmd;
+}
+
+void configure_led(void)
+{
+    gpio_reset_pin(BLINK_GPIO);
+    /* Set the GPIO as a push/pull output */
+    gpio_set_direction(BLINK_GPIO, GPIO_MODE_OUTPUT);
+}
+
+void blink_led(uint8_t level)
+{
+    /* Set the GPIO level according to the state (LOW or HIGH)*/
+    gpio_set_level(BLINK_GPIO, level);
 }
