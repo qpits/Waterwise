@@ -3,7 +3,7 @@ from flask import Flask
 from flask import request, jsonify
 from flask_openapi3 import OpenAPI, Info
 from config import Config
-from flask import render_template
+from flask import render_template,session,redirect,url_for
 import ssl
 import requests
 from DB import DB
@@ -18,7 +18,7 @@ static_path = "./static"
 templates_path = "./templates"
 
 info = Info(title=appname, version="1.0.0")
-app = OpenAPI(appname, info=info,template_folder=templates_path, static_folder=static_path)
+app = OpenAPI(__name__, info=info,template_folder=templates_path, static_folder=static_path)
 
 myconfig = Config
 app.config.from_object(myconfig)
@@ -100,7 +100,6 @@ def insert2():
     address = request_data['address']
     status = request_data['status']
 
-
     last_time_checked=str(datetime.now())
 
     db = DB()
@@ -114,9 +113,25 @@ def insert2():
     if status != "stabile" and  status != "perdita rilevata":
        text="<div> Lo stato inserito ( "+escape(status)+" ) non è ammissibile. Per favore inserisci uno stato valido ('stabile' o 'perdita rilevata')! </div>"
        return text,418
+    '''
+    #se è stata inserita una rilevazione per i sensori id_sens=001,002,003 (che sono registrati come address)-> pubblico in un url /response/id_sens lo stato:
+    # 0 = stabile--> NON accendere il led
+    # 1 = perdita rilevata--> accendere il led
     
+    addresses = ['001','002','003']
+    
+    if address in addresses:
+        
+        resp = 1
+        if status == "stabile":
+            resp = 0
+        
+        requests.get('https://watermelon.gitmyfruit.it/response/'+address+'?status='+str(resp))
+    '''
 
     text="<div> address:"+escape(address)+"<br> status:"+escape(status)+"<br> last_time_checked:"+last_time_checked+"</div>"
+
+   
 
     return text,200
 
@@ -153,10 +168,39 @@ def insert():
     
 
     db.insert_registration(id_sys, last_time_checked, status)
-
+        
     text="<div> address:"+escape(address)+"<br> status:"+escape(status)+"<br> last_time_checked:"+last_time_checked+"</div>"
 
-    return text,200
+    return text,200   
+
+#     FATTO ORA
+
+@app.route('/response/<address>', methods=['GET'])
+def get_status(address):
+        
+        db = DB()
+        db.create_connection(db_path)
+
+        id_sys=(db.select_id_sys(address))
+
+        if id_sys == -1:
+            text="<div> L'indirizzo fornito ( "+escape(address)+" ) non è presente nel DB. Per favore inserisci un indirizzo valido! </div>"
+            return text,418
+        
+        history=db.get_history(address)
+        print(history)
+        status=history[0][3]
+
+        # se è stata inserita una rilevazione
+        # 0 = stabile--> NON accendere il led
+        # 1 = perdita rilevata--> accendere il led
+
+        text='0'
+
+        if status == 'perdita rilevata':
+            text='1'
+
+        return text,200
 
 
 
@@ -185,16 +229,6 @@ def mein():
     
     first_creation_monitored_systems=db.setup()
 
-
-    #last_time_checked=datetime.now()
-    #db.insert_registration(1, last_time_checked,'stabile')
-    #db.insert_registration(1, '2022-01-16 12:31:55.682819','perdita rilevata')
-    #last_time_checked=datetime.now()
-    #db.insert_registration(1, '2025-02-16 12:31:55.682819','stabile')  #ultima per id_sys 1
-
-
-    #db.insert_registration(5, '2024-02-16 12:31:55.682819','stabile')
-    #db.insert_registration(5, '2099-02-16 12:31:55.682819','perdita rilevata') #ultima per id_sys 5
     
     if not first_creation_monitored_systems : #se è la prima volta che creo la tabella, inserisco i valori dei sensori
         for s in range(len(elementi)):
