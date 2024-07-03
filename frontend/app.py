@@ -10,6 +10,7 @@ from DB import DB
 from datetime import datetime
 import json
 from markupsafe import escape
+import setproctitle
 
 
 appname = "WaterwiseApp!"
@@ -26,12 +27,12 @@ tempdir=''
 
 # S->sensore    A->abitazione   T->torre acquedotto
 elementi = [
-    ["Duck St 134","perdita rilevata",36.115694, -97.062748,'S','null'],
+    ["Duck St 134","stabile",36.115694, -97.062748,'S','null'],
     ["6th Av 102","stabile",36.115747, -97.058589,'S','null'],
     ["Maple Ave 51","stabile",36.120665, -97.061172,'S','null'],
     ["Maple Ave 30","stabile",36.120623, -97.063954,'A','null'],
     ["001","stabile",36.120631, -97.062740,'A','null'],
-    ["Duck St 123","perdita rilevata",36.118438, -97.062754,'A','null'],
+    ["Duck St 123","stabile",36.118438, -97.062754,'A','null'],
     ["003","stabile",36.115676, -97.060866,'A','null'],
     ["Husband St 5","stabile",36.117403, -97.059956,'A','null'],
     ["Maple Ave 58","stabile",36.120644, -97.059973,'A','null'],
@@ -113,21 +114,7 @@ def insert2():
     if status != "stabile" and  status != "perdita rilevata":
        text="<div> Lo stato inserito ( "+escape(status)+" ) non è ammissibile. Per favore inserisci uno stato valido ('stabile' o 'perdita rilevata')! </div>"
        return text,418
-    '''
-    #se è stata inserita una rilevazione per i sensori id_sens=001,002,003 (che sono registrati come address)-> pubblico in un url /response/id_sens lo stato:
-    # 0 = stabile--> NON accendere il led
-    # 1 = perdita rilevata--> accendere il led
-    
-    addresses = ['001','002','003']
-    
-    if address in addresses:
-        
-        resp = 1
-        if status == "stabile":
-            resp = 0
-        
-        requests.get('https://watermelon.gitmyfruit.it/response/'+address+'?status='+str(resp))
-    '''
+  
 
     text="<div> address:"+escape(address)+"<br> status:"+escape(status)+"<br> last_time_checked:"+last_time_checked+"</div>"
 
@@ -150,6 +137,8 @@ def insert():
     request_data = request.get_json()
     address = request_data['address']
     status = request_data['status']
+
+    app.logger.debug('received address: %s, status: %s', address, status)
 
 
     last_time_checked=str(datetime.now())
@@ -221,11 +210,22 @@ def show():
 def mein():
     db = DB()
     db.create_connection(db_path)
-   
-    #delete tables
 
-    #db.delete_table("monitored_systems")
-    #db.delete_table("systems_history")
+    system_list = db.get_all_systems()
+    #last_history_list = db.get_last_history()
+
+    #print(system_list)
+
+
+    data = {'sys':system_list}#, 'his': last_history_list}
+
+    return render_template(tempdir + 'homepage.html', data=data)
+
+def setup_db():
+    db = DB()
+    db.create_connection(db_path)
+    db.delete_table("monitored_systems")
+    db.delete_table("systems_history")
     
     first_creation_monitored_systems=db.setup()
 
@@ -248,18 +248,8 @@ def mein():
             last_time_checked=datetime.now()
             db.insert_registration(id_sys, last_time_checked,elementi[s][1])
 
-
-    system_list = db.get_all_systems()
-    #last_history_list = db.get_last_history()
-
-    #print(system_list)
-
-
-    data = {'sys':system_list}#, 'his': last_history_list}
-
-    return render_template(tempdir + 'homepage.html', data=data)
-
 if __name__ == '__main__':
+    #setproctitle.setproctitle('waterwise-server')
     port = 8008
     interface = '192.168.1.71'
     
@@ -268,4 +258,5 @@ if __name__ == '__main__':
 
     context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
     context.load_cert_chain(certName,keyName)
+    setup_db()
     app.run(host=interface,port=port,ssl_context=context)
